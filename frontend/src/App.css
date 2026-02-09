@@ -1,0 +1,238 @@
+/* 全局背景 */
+html,
+body,
+#root,
+.ant-layout {
+  background: linear-gradient(135deg, #0a1929 0%, #132a4c 100%) !important;
+}
+
+/* 全局卡片样式 */
+.ant-card {
+  background: rgba(26, 58, 82, 0.9) !important;
+  border-color: rgba(0, 212, 255, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.ant-card-head {
+  background: rgba(13, 90, 127, 0.3) !important;
+  border-bottom-color: rgba(0, 212, 255, 0.2) !important;
+  color: #00d4ff !important;
+}
+
+.ant-card-body {
+  color: #e0e0e0 !important;
+}
+
+/* 全局文字颜色 */
+.ant-typography,
+.ant-form-item-label,
+.ant-table-cell {
+  color: #e0e0e0 !important;
+}
+
+/* 全局输入框 */
+.ant-input,
+.ant-select-selector,
+.ant-picker {
+  background: rgba(10, 25, 41, 0.8) !important;
+  border-color: rgba(0, 212, 255, 0.3) !important;
+  color: #e0e0e0 !important;
+}
+
+.ant-input::placeholder {
+  color: #76869f !important;
+}
+
+/* 全局按钮 */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #00d4ff 0%, #0d5a7f 100%) !important;
+  border-color: #00d4ff !important;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #00e5ff 0%, #1a6fa0 100%) !important;
+  border-color: #00e5ff !important;
+}
+
+/* 进度条 */
+.ant-progress-inner {
+  background-color: rgba(0, 212, 255, 0.1) !important;
+}
+
+.ant-progress-bar-outer {
+  background-color: rgba(0, 212, 255, 0.1) !important;
+}
+
+/* 标签 */
+.ant-tag {
+  background: rgba(0, 212, 255, 0.1) !important;
+  border-color: rgba(0, 212, 255, 0.3) !important;
+  color: #00d4ff !important;
+}
+
+/* 下拉菜单 */
+.ant-dropdown-menu {
+  background: #1a3a52 !important;
+  color: #e0e0e0 !important;
+}
+
+.ant-dropdown-menu-item {
+  color: #e0e0e0 !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: rgba(0, 212, 255, 0.1) !important;
+  color: #00d4ff !important;
+}
+
+/* 分页 */
+.ant-pagination-item {
+  background: rgba(10, 25, 41, 0.8) !important;
+  border-color: rgba(0, 212, 255, 0.2) !important;
+}
+
+.ant-pagination-item a {
+  color: #e0e0e0 !important;
+}
+
+.ant-pagination-item-active {
+  background: rgba(0, 212, 255, 0.2) !important;
+  border-color: #00d4ff !important;
+}
+
+.ant-pagination-item-active a {
+  color: #00d4ff !important;
+}
+
+/* 模态框 */
+.ant-modal-content {
+  background: #1a3a52 !important;
+}
+
+.ant-modal-header {
+  background: rgba(13, 90, 127, 0.3) !important;
+  border-bottom-color: rgba(0, 212, 255, 0.2) !important;
+}
+
+.ant-modal-title {
+  color: #00d4ff !important;
+}
+
+.ant-modal-body {
+  color: #e0e0e0 !important;
+}
+
+.ant-modal-close-x {
+  color: #76869f !important;
+}
+
+.ant-modal-close-x:hover {
+  color: #00d4ff !important;
+}
+
+/* 提示信息框 */
+.ant-message-notice-content {
+  background: #1a3a52 !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  color: #e0e0e0 !important;
+}
+
+/* Icon and SVG color fixes */
+.anticon {
+  color: #e0e0e0 !important;
+}
+
+.anticon-close,
+.anticon-delete,
+.anticon-warning {
+  color: #cf1322 !important;
+}
+
+.anticon-check {
+  color: #3f8600 !important;
+}
+
+svg {
+  fill: #e0e0e0 !important;
+  stroke: #e0e0e0 !important;
+}
+
+.ant-icon svg {
+  fill: #e0e0e0 !important;
+}
+
+.ant-empty-description {
+  color: #e0e0e0 !important;
+}
+
+.ant-spin-text {
+  color: #00d4ff !important;
+}
+
+.ant-rate-star-content svg {
+  fill: #ffc069 !important;
+}
+
+.ant-steps-item-title {
+  color: #e0e0e0 !important;
+}
+
+.ant-steps-item-description {
+  color: #76869f !important;
+}
+
+.ant-descriptions-item-label {
+  color: #76869f !important;
+}
+
+.ant-descriptions-item-content {
+  color: #e0e0e0 !important;
+}
+
+.ant-tag-text {
+  color: inherit !important;
+}
+
+.ant-checkbox-inner {
+  background-color: rgba(0, 212, 255, 0.1) !important;
+  border-color: rgba(0, 212, 255, 0.3) !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #00d4ff !important;
+  border-color: #00d4ff !important;
+}
+
+.ant-radio-inner {
+  border-color: rgba(0, 212, 255, 0.3) !important;
+}
+
+.ant-radio-checked .ant-radio-inner {
+  border-color: #00d4ff !important;
+}
+
+.ant-radio-checked .ant-radio-inner::after {
+  background-color: #00d4ff !important;
+}
+
+/*自定义样式*/
+.app-content {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.summary-cards {
+  margin-bottom: 24px;
+}
+
+.wafer-map-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.test-chart-container {
+  margin-top: 16px;
+}
