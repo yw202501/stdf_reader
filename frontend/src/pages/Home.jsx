@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Table, Space, Typography, Empty, Spin, Progress, message } from 'antd';
+import { Card, Table, Space, Typography, Empty, Spin, Progress, message, Tag } from 'antd';
 import { FileOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getFileList, startParse, getParseProgress } from '../services/api';
@@ -54,10 +54,13 @@ function Home() {
     {
       title: '文件名',
       dataIndex: 'name',
-      render: (name) => (
+      render: (name, record, index) => (
         <Space>
           <FileOutlined />
           <a>{name}</a>
+          {index === 0 && files.length > 0 && (
+            <Tag color="cyan" style={{ marginLeft: 8 }}>最新</Tag>
+          )}
         </Space>
       ),
     },
