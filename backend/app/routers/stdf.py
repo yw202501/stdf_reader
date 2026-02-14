@@ -40,6 +40,10 @@ async def list_stdf_files():
                     "modified": f.stat().st_mtime,
                 }
             )
+    
+    # Sort files by modification time (most recent first)
+    files.sort(key=lambda x: x["modified"], reverse=True)
+    
     return FileListResponse(files=files)
 
 
