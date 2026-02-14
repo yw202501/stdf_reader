@@ -3,7 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import stdf
+from .routers import stdf, cache
+from .database import init_db
 
 app = FastAPI(
     title="STDF Reader API",
@@ -20,8 +21,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 初始化数据库
+init_db()
+
 # 注册路由
 app.include_router(stdf.router, prefix="/api/stdf", tags=["STDF"])
+app.include_router(cache.router, prefix="/api/cache", tags=["Cache"])
 
 
 @app.get("/")

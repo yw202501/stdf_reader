@@ -3,10 +3,12 @@
 import os
 import threading
 import uuid
+import time
 from typing import Dict, List, Optional
 
 from pystdf.IO import Parser
 from pystdf import V4
+from sqlalchemy.orm import Session
 
 from ..models.stdf_models import (
     StdfSummaryResponse,
@@ -20,6 +22,7 @@ from ..models.stdf_models import (
     SiteYield,
     HardBinInfo,
 )
+from .cache_service import CacheService, calculate_file_hash
 
 
 class StdfRecordCollector:
@@ -73,17 +76,23 @@ class StdfRecordCollector:
 class StdfParserService:
     """STDF 解析服务"""
 
-    def __init__(self):
+    def __init__(self, db: Optional[Session] = None):
         self._cache: Dict[str, Dict] = {}
         self._jobs: Dict[str, Dict] = {}
         self._job_by_file: Dict[str, str] = {}
         self._lock = threading.Lock()
+        self._db = db  # 数据库会话（可选）
+
+    def set_db(self, db: Session):
+        """设置数据库会话"""
+        self._db = db
 
     def _get_signature(self, file_path: str) -> str:
         stat = os.stat(file_path)
         return f"{stat.st_size}:{stat.st_mtime}"
 
     def _get_cached_collector(self, file_path: str) -> Optional[StdfRecordCollector]:
+        """从内存缓存获取 collector"""
         signature = self._get_signature(file_path)
         with self._lock:
             cached = self._cache.get(file_path)
@@ -92,6 +101,7 @@ class StdfParserService:
         return None
 
     def _set_cache(self, file_path: str, collector: StdfRecordCollector) -> None:
+        """设置内存缓存"""
         signature = self._get_signature(file_path)
         with self._lock:
             self._cache[file_path] = {
@@ -206,12 +216,33 @@ class StdfParserService:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def get_summary(self, file_path: str) -> StdfSummaryResponse:
+    def get_summary(self, file_path: str, db: Optional[Session] = None) -> StdfSummaryResponse:
         """获取 STDF 文件摘要"""
+        # 1. 尝试从数据库缓存获取
+        if db:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                cached_data = CacheService.get_cached_data(db, cached_file.id, "summary")
+                if cached_data:
+                    return StdfSummaryResponse(**cached_data)
+        
+        # 2. 尝试从内存缓存获取
         collector = self._get_cached_collector(file_path)
         if not collector:
+            # 3. 解析文件
+            start_time = time.time()
             collector = self._parse_file(file_path)
+            parse_time = time.time() - start_time
             self._set_cache(file_path, collector)
+            
+            # 保存到数据库
+            if db:
+                file_size = os.path.getsize(file_path)
+                filename = os.path.basename(file_path)
+                file_record = CacheService.save_file_record(
+                    db, file_hash, filename, file_size, parse_time
+                )
 
         mir_info = None
         if collector.mir:
@@ -398,7 +429,7 @@ class StdfParserService:
                 )
             )
 
-        return StdfSummaryResponse(
+        summary_response = StdfSummaryResponse(
             mir=mir_info,
             mrr=mrr_info,
             total_parts=total_parts,
@@ -411,6 +442,15 @@ class StdfParserService:
             hbin_details=hbin_details,
             total_tests=len(set(ptr.get("TEST_NUM", 0) for ptr in collector.ptr_list)),
         )
+        
+        # 保存到数据库
+        if db:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                CacheService.save_data(db, cached_file.id, "summary", summary_response.dict())
+        
+        return summary_response
 
     def get_test_results(
         self,
@@ -419,12 +459,43 @@ class StdfParserService:
         site_num: Optional[int] = None,
         page: int = 1,
         page_size: int = 100,
+        db: Optional[Session] = None,
     ) -> TestResultsResponse:
         """获取测试结果数据"""
+        # 1. 尝试从数据库缓存获取
+        if db and test_num is None and site_num is None and page == 1:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                cached_data = CacheService.get_cached_data(db, cached_file.id, "test_results")
+                if cached_data:
+                    # 应用分页
+                    total = cached_data["total"]
+                    all_results = [TestResultItem(**item) for item in cached_data["results"]]
+                    start = (page - 1) * page_size
+                    end = start + page_size
+                    paged_results = all_results[start:end]
+                    return TestResultsResponse(
+                        total=total,
+                        page=page,
+                        page_size=page_size,
+                        results=paged_results,
+                    )
+        
+        # 2. 从内存缓存或文件解析
         collector = self._get_cached_collector(file_path)
         if not collector:
+            start_time = time.time()
             collector = self._parse_file(file_path)
+            parse_time = time.time() - start_time
             self._set_cache(file_path, collector)
+            
+            # 保存文件记录到数据库
+            if db:
+                file_hash = calculate_file_hash(file_path)
+                file_size = os.path.getsize(file_path)
+                filename = os.path.basename(file_path)
+                CacheService.save_file_record(db, file_hash, filename, file_size, parse_time)
 
         results = []
         for ptr in collector.ptr_list:
@@ -452,20 +523,55 @@ class StdfParserService:
         start = (page - 1) * page_size
         end = start + page_size
         paged_results = results[start:end]
-
-        return TestResultsResponse(
+        
+        response = TestResultsResponse(
             total=total,
             page=page,
             page_size=page_size,
             results=paged_results,
         )
+        
+        # 保存到数据库（仅保存完整数据，不带过滤）
+        if db and test_num is None and site_num is None:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                # 保存所有结果
+                full_response_data = {
+                    "total": total,
+                    "page": 1,
+                    "page_size": total,
+                    "results": [r.dict() for r in results],
+                }
+                CacheService.save_data(db, cached_file.id, "test_results", full_response_data)
 
-    def get_test_list(self, file_path: str) -> List[TestInfo]:
+        return response
+
+    def get_test_list(self, file_path: str, db: Optional[Session] = None) -> List[TestInfo]:
         """获取文件中所有测试项列表"""
+        # 1. 尝试从数据库缓存获取
+        if db:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                cached_data = CacheService.get_cached_data(db, cached_file.id, "test_list")
+                if cached_data:
+                    return [TestInfo(**item) for item in cached_data]
+        
+        # 2. 从内存缓存或文件解析
         collector = self._get_cached_collector(file_path)
         if not collector:
+            start_time = time.time()
             collector = self._parse_file(file_path)
+            parse_time = time.time() - start_time
             self._set_cache(file_path, collector)
+            
+            # 保存文件记录到数据库
+            if db:
+                file_hash = calculate_file_hash(file_path)
+                file_size = os.path.getsize(file_path)
+                filename = os.path.basename(file_path)
+                CacheService.save_file_record(db, file_hash, filename, file_size, parse_time)
 
         test_map: Dict[int, TestInfo] = {}
         for ptr in collector.ptr_list:
@@ -503,14 +609,42 @@ class StdfParserService:
             test_info.fail_rate = round((fail_count / total * 100), 2) if total > 0 else 0
 
         # 按失败率从高到低排序
-        return sorted(test_map.values(), key=lambda t: (-t.fail_rate, t.test_num))
+        test_list = sorted(test_map.values(), key=lambda t: (-t.fail_rate, t.test_num))
+        
+        # 保存到数据库
+        if db:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                CacheService.save_data(db, cached_file.id, "test_list", [t.dict() for t in test_list])
+        
+        return test_list
 
-    def get_wafer_map(self, file_path: str) -> WaferMapResponse:
+    def get_wafer_map(self, file_path: str, db: Optional[Session] = None) -> WaferMapResponse:
         """获取 Wafer Map 数据"""
+        # 1. 尝试从数据库缓存获取
+        if db:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                cached_data = CacheService.get_cached_data(db, cached_file.id, "wafer_map")
+                if cached_data:
+                    return WaferMapResponse(**cached_data)
+        
+        # 2. 从内存缓存或文件解析
         collector = self._get_cached_collector(file_path)
         if not collector:
+            start_time = time.time()
             collector = self._parse_file(file_path)
+            parse_time = time.time() - start_time
             self._set_cache(file_path, collector)
+            
+            # 保存文件记录到数据库
+            if db:
+                file_hash = calculate_file_hash(file_path)
+                file_size = os.path.getsize(file_path)
+                filename = os.path.basename(file_path)
+                CacheService.save_file_record(db, file_hash, filename, file_size, parse_time)
 
         dies = []
         for prr in collector.prr_list:
@@ -529,8 +663,17 @@ class StdfParserService:
         if collector.wir_list:
             wafer_id = collector.wir_list[0].get("WAFER_ID", "")
 
-        return WaferMapResponse(
+        wafer_response = WaferMapResponse(
             wafer_id=wafer_id,
             total_dies=len(dies),
             dies=dies,
         )
+        
+        # 保存到数据库
+        if db:
+            file_hash = calculate_file_hash(file_path)
+            cached_file = CacheService.get_cached_file_by_hash(db, file_hash)
+            if cached_file:
+                CacheService.save_data(db, cached_file.id, "wafer_map", wafer_response.dict())
+        
+        return wafer_response

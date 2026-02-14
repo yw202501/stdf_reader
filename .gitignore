@@ -29,6 +29,10 @@ Thumbs.db
 data/*.stdf
 data/*.std
 
+# Database
+backend/stdf_cache.db
+*.db
+
 # Environment
 .env
 .env.local

@@ -4,9 +4,12 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, Query
+from fastapi import APIRouter, File, HTTPException, UploadFile, Query, Depends
+from sqlalchemy.orm import Session
 
 from ..services.stdf_parser import StdfParserService
+from ..services.cache_service import CacheService
+from ..database import get_db
 from ..models.stdf_models import (
     FileListResponse,
     StdfSummaryResponse,
@@ -92,14 +95,14 @@ async def get_parse_progress(job_id: str):
 
 
 @router.get("/summary/{filename}", response_model=StdfSummaryResponse)
-async def get_stdf_summary(filename: str):
+async def get_stdf_summary(filename: str, db: Session = Depends(get_db)):
     """获取 STDF 文件的摘要信息 (MIR/MRR 等)"""
     file_path = DATA_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
     try:
-        summary = parser_service.get_summary(str(file_path))
+        summary = parser_service.get_summary(str(file_path), db=db)
         return summary
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"解析文件失败: {str(e)}")
@@ -112,6 +115,7 @@ async def get_test_results(
     site_num: Optional[int] = Query(None, description="筛选特定站点"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(100, ge=1, le=5000, description="每页数量"),
+    db: Session = Depends(get_db),
 ):
     """获取 STDF 文件的测试结果数据"""
     file_path = DATA_DIR / filename
@@ -125,6 +129,7 @@ async def get_test_results(
             site_num=site_num,
             page=page,
             page_size=page_size,
+            db=db,
         )
         return results
     except Exception as e:
@@ -132,28 +137,28 @@ async def get_test_results(
 
 
 @router.get("/wafermap/{filename}", response_model=WaferMapResponse)
-async def get_wafer_map(filename: str):
+async def get_wafer_map(filename: str, db: Session = Depends(get_db)):
     """获取 Wafer Map 数据"""
     file_path = DATA_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
     try:
-        wafer_data = parser_service.get_wafer_map(str(file_path))
+        wafer_data = parser_service.get_wafer_map(str(file_path), db=db)
         return wafer_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"解析文件失败: {str(e)}")
 
 
 @router.get("/test-list/{filename}")
-async def get_test_list(filename: str):
+async def get_test_list(filename: str, db: Session = Depends(get_db)):
     """获取文件中所有测试项列表"""
     file_path = DATA_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
     try:
-        tests = parser_service.get_test_list(str(file_path))
+        tests = parser_service.get_test_list(str(file_path), db=db)
         return {"tests": tests}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"解析文件失败: {str(e)}")
