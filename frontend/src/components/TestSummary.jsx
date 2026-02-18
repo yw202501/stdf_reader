@@ -19,6 +19,10 @@ function TestSummary({ summary }) {
     }
     return `${((count / total_parts) * 100).toFixed(2)}%`;
   };
+  const hbinPieEntries = hbin_counts
+    ? Object.entries(hbin_counts).filter(([bin]) => Number(bin) !== 1)
+    : [];
+  const pieColors = ['#ff4d4f', '#faad14', '#1890ff', '#722ed1', '#eb2f96', '#13c2c2', '#fa8c16'];
 
   return (
     <div>
@@ -111,41 +115,44 @@ function TestSummary({ summary }) {
             <>
               <div style={{ flex: '0 0 500px' }}>
                 <h4 style={{ marginBottom: 16, textAlign: 'center' }}>Hard Bin 分布</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={Object.entries(hbin_counts).map(([bin, count]) => ({
-                        name: `Bin ${bin}`,
-                        value: count,
-                        bin: bin,
-                      }))}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(entry) => `${entry.name}: ${entry.value} (${formatBinPercent(entry.value)})`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {Object.keys(hbin_counts).map((bin, index) => {
-                        const colors = ['#52c41a', '#ff4d4f', '#faad14', '#1890ff', '#722ed1', '#eb2f96', '#13c2c2', '#fa8c16'];
-                        return (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={Number(bin) === 1 ? '#52c41a' : colors[index % colors.length]} 
+                {hbinPieEntries.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={hbinPieEntries.map(([bin, count]) => ({
+                          name: `Bin ${bin}`,
+                          value: count,
+                          bin: bin,
+                        }))}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry) => `${entry.name}: ${entry.value} (${formatBinPercent(entry.value)})`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {hbinPieEntries.map(([bin], index) => (
+                          <Cell
+                            key={`cell-${bin}`}
+                            fill={pieColors[index % pieColors.length]}
                           />
-                        );
-                      })}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value, name, props) => [
-                        `${value} (${formatBinPercent(value)})`, 
-                        props.payload.name
-                      ]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value, name, props) => [
+                          `${value} (${formatBinPercent(value)})`,
+                          props.payload.name,
+                        ]}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#999', padding: '40px 0' }}>
+                    仅有 Bin 1（通过）数据，已隐藏
+                  </div>
+                )}
               </div>
               
               {/* 右侧：测试项列表 */}

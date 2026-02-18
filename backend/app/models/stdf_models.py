@@ -61,6 +61,7 @@ class HardBinInfo(BaseModel):
 
 
 class StdfSummaryResponse(BaseModel):
+    summary_version: int = 2
     mir: Optional[MirInfo] = None
     mrr: Optional[MrrInfo] = None
     total_parts: int = 0

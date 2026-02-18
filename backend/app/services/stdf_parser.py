@@ -41,6 +41,36 @@ class StdfRecordCollector:
         self.hbr_list: List[Dict] = []
         self.sbr_list: List[Dict] = []
         self.far: Optional[Dict] = None
+        self.failed_tests_by_bin: Dict[int, Dict[str, int]] = {}
+        self._ptr_buffer: Dict[tuple, List[Dict]] = {}
+
+    def _is_fail(self, record: Dict) -> bool:
+        test_flag = record.get("TEST_FLG")
+        result = record.get("RESULT")
+        lo_limit = record.get("LO_LIMIT")
+        hi_limit = record.get("HI_LIMIT")
+        if test_flag is not None:
+            return (test_flag & 0x40) != 0
+        if result is not None:
+            if lo_limit is not None and result < lo_limit:
+                return True
+            if hi_limit is not None and result > hi_limit:
+                return True
+        return False
+
+    def _record_failures_for_bin(self, hbin: int, records: List[Dict]) -> None:
+        if hbin not in self.failed_tests_by_bin:
+            self.failed_tests_by_bin[hbin] = {}
+        for rec in records:
+            if not self._is_fail(rec):
+                continue
+            test_num = rec.get("TEST_NUM", 0)
+            test_name = rec.get("TEST_TXT", "") or rec.get("TEST_NAM", "") or f"Test {test_num}"
+            if not test_name:
+                continue
+            self.failed_tests_by_bin[hbin][test_name] = (
+                self.failed_tests_by_bin[hbin].get(test_name, 0) + 1
+            )
 
     def after_send(self, dataSource, data):
         """pystdf 回调 - 收集记录"""
@@ -53,10 +83,29 @@ class StdfRecordCollector:
             self.mrr = record
         elif isinstance(record_obj, V4.Ptr):
             self.ptr_list.append(record)
+            head = record.get("HEAD_NUM", 255)
+            site = record.get("SITE_NUM", 0)
+            key = (head, site)
+            if key not in self._ptr_buffer:
+                self._ptr_buffer[key] = []
+            self._ptr_buffer[key].append(record)
         elif isinstance(record_obj, V4.Ftr):
             self.ftr_list.append(record)
+            head = record.get("HEAD_NUM", 255)
+            site = record.get("SITE_NUM", 0)
+            key = (head, site)
+            if key not in self._ptr_buffer:
+                self._ptr_buffer[key] = []
+            self._ptr_buffer[key].append(record)
         elif isinstance(record_obj, V4.Prr):
             self.prr_list.append(record)
+            head = record.get("HEAD_NUM", 255)
+            site = record.get("SITE_NUM", 0)
+            hbin = record.get("HARD_BIN", 0)
+            key = (head, site)
+            buffered = self._ptr_buffer.pop(key, [])
+            if buffered:
+                self._record_failures_for_bin(hbin, buffered)
         elif isinstance(record_obj, V4.Pir):
             self.pir_list.append(record)
         elif isinstance(record_obj, V4.Wrr):
@@ -225,7 +274,8 @@ class StdfParserService:
             if cached_file:
                 cached_data = CacheService.get_cached_data(db, cached_file.id, "summary")
                 if cached_data:
-                    return StdfSummaryResponse(**cached_data)
+                    if cached_data.get("summary_version", 1) >= 2:
+                        return StdfSummaryResponse(**cached_data)
         
         # 2. 尝试从内存缓存获取
         collector = self._get_cached_collector(file_path)
@@ -244,34 +294,39 @@ class StdfParserService:
                     db, file_hash, filename, file_size, parse_time
                 )
 
+        def _safe_str(value) -> str:
+            if value is None:
+                return ""
+            return str(value)
+
         mir_info = None
         if collector.mir:
             mir = collector.mir
             mir_info = MirInfo(
-                setup_time=str(mir.get("SETUP_T", "")),
-                start_time=str(mir.get("START_T", "")),
-                station_number=mir.get("STAT_NUM", 0),
-                mode_code=mir.get("MODE_COD", ""),
-                lot_id=mir.get("LOT_ID", ""),
-                part_type=mir.get("PART_TYP", ""),
-                node_name=mir.get("NODE_NAM", ""),
-                tester_type=mir.get("TSTR_TYP", ""),
-                job_name=mir.get("JOB_NAM", ""),
-                exec_type=mir.get("EXEC_TYP", ""),
-                exec_ver=mir.get("EXEC_VER", ""),
-                facility_id=mir.get("FACIL_ID", ""),
-                floor_id=mir.get("FLOOR_ID", ""),
-                process_id=mir.get("PROC_ID", ""),
+                setup_time=_safe_str(mir.get("SETUP_T")),
+                start_time=_safe_str(mir.get("START_T")),
+                station_number=mir.get("STAT_NUM") or 0,
+                mode_code=_safe_str(mir.get("MODE_COD")),
+                lot_id=_safe_str(mir.get("LOT_ID")),
+                part_type=_safe_str(mir.get("PART_TYP")),
+                node_name=_safe_str(mir.get("NODE_NAM")),
+                tester_type=_safe_str(mir.get("TSTR_TYP")),
+                job_name=_safe_str(mir.get("JOB_NAM")),
+                exec_type=_safe_str(mir.get("EXEC_TYP")),
+                exec_ver=_safe_str(mir.get("EXEC_VER")),
+                facility_id=_safe_str(mir.get("FACIL_ID")),
+                floor_id=_safe_str(mir.get("FLOOR_ID")),
+                process_id=_safe_str(mir.get("PROC_ID")),
             )
 
         mrr_info = None
         if collector.mrr:
             mrr = collector.mrr
             mrr_info = MrrInfo(
-                finish_time=str(mrr.get("FINISH_T", "")),
-                disposition_code=str(mrr.get("DISP_COD", "")),
-                user_description=str(mrr.get("USR_DESC", "")),
-                exec_description=str(mrr.get("EXC_DESC", "")),
+                finish_time=_safe_str(mrr.get("FINISH_T")),
+                disposition_code=_safe_str(mrr.get("DISP_COD")),
+                user_description=_safe_str(mrr.get("USR_DESC")),
+                exec_description=_safe_str(mrr.get("EXC_DESC")),
             )
 
         # 统计信息
@@ -317,92 +372,8 @@ class StdfParserService:
             hbin = prr.get("HARD_BIN", 0)
             hbin_counts[hbin] = hbin_counts.get(hbin, 0) + 1
 
-        # 分析每个bin对应的失败测试项
-        # 首先建立PTR到HEAD_NUM+SITE_NUM的索引，用于关联同一芯片的测试
-        # 由于STDF文件中PTR和PRR按顺序出现，需要按HEAD/SITE分组
-        test_name_map: Dict[int, str] = {}  # test_num -> test_name
-        for ptr in collector.ptr_list:
-            test_num = ptr.get("TEST_NUM", 0)
-            test_txt = ptr.get("TEST_TXT", "")
-            if test_num not in test_name_map and test_txt:
-                test_name_map[test_num] = test_txt
-
-        # 统计每个bin中失败次数最多的测试项
-        bin_failed_tests: Dict[int, Dict[str, int]] = {}  # bin -> {test_name: fail_count}
-        
-        # 按HEAD_NUM和SITE_NUM对PTR分组
-        ptr_by_head_site: Dict[tuple, List] = {}
-        for ptr in collector.ptr_list:
-            head = ptr.get("HEAD_NUM", 255)
-            site = ptr.get("SITE_NUM", 0)
-            key = (head, site)
-            if key not in ptr_by_head_site:
-                ptr_by_head_site[key] = []
-            ptr_by_head_site[key].append(ptr)
-
-        # 对于非bin1的芯片，找出失败的测试项
-        for prr in collector.prr_list:
-            hbin = prr.get("HARD_BIN", 0)
-            if hbin == 1:  # 跳过通过的芯片
-                continue
-                
-            head = prr.get("HEAD_NUM", 255)
-            site = prr.get("SITE_NUM", 0)
-            
-            # 找到该芯片的测试数据 - 需要更精确的匹配
-            # 使用X_COORD和Y_COORD作为唯一标识
-            x_coord = prr.get("X_COORD", -1)
-            y_coord = prr.get("Y_COORD", -1)
-            part_id = prr.get("PART_ID", "")
-            
-            if hbin not in bin_failed_tests:
-                bin_failed_tests[hbin] = {}
-
-        # 使用TSR (Test Synopsis Record) 如果可用
-        if collector.tsr_list:
-            for tsr in collector.tsr_list:
-                test_num = tsr.get("TEST_NUM", 0)
-                test_name = tsr.get("TEST_NAM", "") or test_name_map.get(test_num, f"Test {test_num}")
-                fail_cnt = tsr.get("FAIL_CNT", 0)
-                
-                # TSR doesn't have bin info, so we'll associate failed tests with non-pass bins
-                if fail_cnt > 0 and test_name:
-                    for bin_num in hbin_counts.keys():
-                        if bin_num != 1:  # 只关联非pass的bin
-                            if bin_num not in bin_failed_tests:
-                                bin_failed_tests[bin_num] = {}
-                            bin_failed_tests[bin_num][test_name] = bin_failed_tests[bin_num].get(test_name, 0) + fail_cnt
-        
-        # 如果没有TSR，从PTR推断
-        if not collector.tsr_list:
-            for ptr in collector.ptr_list:
-                test_num = ptr.get("TEST_NUM", 0)
-                test_flag = ptr.get("TEST_FLG", 0)
-                result = ptr.get("RESULT")
-                lo_limit = ptr.get("LO_LIMIT")
-                hi_limit = ptr.get("HI_LIMIT")
-                test_name = ptr.get("TEST_TXT", "") or f"Test {test_num}"
-                
-                # 检查是否失败
-                is_fail = False
-                if test_flag is not None:
-                    # TEST_FLG bit 6 (0x40) = 1 表示失败
-                    is_fail = (test_flag & 0x40) != 0
-                else:
-                    # 根据限值判断
-                    if result is not None:
-                        if lo_limit is not None and result < lo_limit:
-                            is_fail = True
-                        if hi_limit is not None and result > hi_limit:
-                            is_fail = True
-                
-                if is_fail and test_name:
-                    # 将失败测试关联到所有非pass的bin
-                    for bin_num in hbin_counts.keys():
-                        if bin_num != 1:
-                            if bin_num not in bin_failed_tests:
-                                bin_failed_tests[bin_num] = {}
-                            bin_failed_tests[bin_num][test_name] = bin_failed_tests[bin_num].get(test_name, 0) + 1
+        # 统计每个bin中失败次数最多的测试项（按实际PRR归属汇总）
+        bin_failed_tests: Dict[int, Dict[str, int]] = collector.failed_tests_by_bin or {}
 
         # 构建hbin_details
         hbin_details = []
@@ -430,6 +401,7 @@ class StdfParserService:
             )
 
         summary_response = StdfSummaryResponse(
+            summary_version=2,
             mir=mir_info,
             mrr=mrr_info,
             total_parts=total_parts,
