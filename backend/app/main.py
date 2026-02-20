@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import stdf, cache
+from .routers import stdf, cache, experimental
 from .database import init_db
 
 app = FastAPI(
@@ -31,6 +31,7 @@ init_db()
 # 注册路由
 app.include_router(stdf.router, prefix="/api/stdf", tags=["STDF"])
 app.include_router(cache.router, prefix="/api/cache", tags=["Cache"])
+app.include_router(experimental.router, prefix="/experimental", tags=["Experimental"])
 
 
 @app.get("/")
