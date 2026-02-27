@@ -70,8 +70,9 @@ class StdfRecordCollector:
             test_name = rec.get("TEST_TXT", "") or rec.get("TEST_NAM", "") or f"Test {test_num}"
             if not test_name:
                 continue
-            self.failed_tests_by_bin[hbin][test_name] = (
-                self.failed_tests_by_bin[hbin].get(test_name, 0) + 1
+            test_label = f"{test_num} - {test_name}"
+            self.failed_tests_by_bin[hbin][test_label] = (
+                self.failed_tests_by_bin[hbin].get(test_label, 0) + 1
             )
 
     def after_send(self, dataSource, data):
@@ -276,7 +277,7 @@ class StdfParserService:
             if cached_file:
                 cached_data = CacheService.get_cached_data(db, cached_file.id, "summary")
                 if cached_data:
-                    if cached_data.get("summary_version", 1) >= 2:
+                    if cached_data.get("summary_version", 1) >= 5:
                         return StdfSummaryResponse(**cached_data)
         
         # 2. 尝试从内存缓存获取
@@ -383,7 +384,7 @@ class StdfParserService:
             count = hbin_counts[bin_num]
             percent = round(count / total_parts * 100, 2) if total_parts > 0 else 0
             
-            # 获取该bin的top失败测试项（最多5个）
+            # 获取该bin失败测试项，并计算其对该bin总fail rate的贡献率
             failed_tests_list = []
             if bin_num in bin_failed_tests:
                 sorted_tests = sorted(
@@ -391,7 +392,11 @@ class StdfParserService:
                     key=lambda x: x[1],
                     reverse=True
                 )
-                failed_tests_list = [test_name for test_name, _ in sorted_tests[:10]]
+                total_fail_records_in_bin = sum(fail_records for _, fail_records in sorted_tests)
+                failed_tests_list = [
+                    f"{test_name} ({((test_fail_count / total_fail_records_in_bin) * percent if total_fail_records_in_bin > 0 else 0):.2f}%)"
+                    for test_name, test_fail_count in sorted_tests
+                ]
             
             hbin_details.append(
                 HardBinInfo(
@@ -403,7 +408,7 @@ class StdfParserService:
             )
 
         summary_response = StdfSummaryResponse(
-            summary_version=2,
+            summary_version=5,
             mir=mir_info,
             mrr=mrr_info,
             total_parts=total_parts,

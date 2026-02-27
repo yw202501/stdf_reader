@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, Select, Space, Empty, Alert, message, Button, Spin } from 'antd';
+import { Card, Select, Space, Empty, Alert, message, Button, Spin, Switch } from 'antd';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ReferenceLine, ResponsiveContainer, Brush,
+  ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import { getTestResults, getTestList } from '../services/api';
 
@@ -38,6 +38,7 @@ function TestResults({ filenames = [], canMergeTests = true, programWarning = fa
   const [selectedTests, setSelectedTests] = useState([]);
   const [selectedFile, setSelectedFile] = useState(filenames[0] || null);
   const [resultsMap, setResultsMap] = useState({});
+  const [showLimitsMap, setShowLimitsMap] = useState({});
 
   useEffect(() => {
     setSelectedFile(filenames[0] || null);
@@ -123,26 +124,25 @@ function TestResults({ filenames = [], canMergeTests = true, programWarning = fa
   }, [selectedTests]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateHistogramData = (results) => {
-    if (!results || results.length === 0) return [];
+    if (!results || results.length === 0) return null;
     const values = results.map((r) => r.result).filter((v) => v != null);
-    if (values.length === 0) return [];
+    if (values.length === 0) return null;
     const minVal = Math.min(...values);
     const maxVal = Math.max(...values);
     const range = maxVal - minVal;
     const bucketCount = Math.min(30, Math.ceil(Math.sqrt(values.length)));
     const bucketWidth = range === 0 ? 1 : range / bucketCount;
     const buckets = Array(bucketCount).fill(0);
-    const bucketLabels = [];
-    for (let i = 0; i < bucketCount; i += 1) {
-      const bMin = minVal + i * bucketWidth;
-      bucketLabels.push(`${bMin.toFixed(4)}`);
-    }
     values.forEach((val) => {
       let idx = Math.floor((val - minVal) / bucketWidth);
       if (idx === bucketCount) idx = bucketCount - 1;
       buckets[idx] += 1;
     });
-    return buckets.map((count, i) => ({ range: bucketLabels[i], count }));
+    const bins = buckets.map((count, i) => {
+      const bMin = minVal + i * bucketWidth;
+      return { x: bMin + bucketWidth / 2, count };
+    });
+    return { bins, minVal, maxVal, bucketWidth };
   };
 
   const calculateStats = (results, testInfo) => {
@@ -159,38 +159,42 @@ function TestResults({ filenames = [], canMergeTests = true, programWarning = fa
     const passCount = results.filter(
       (r) => (loLimit === null || r.result >= loLimit) && (hiLimit === null || r.result <= hiLimit),
     ).length;
-    return { mean, median, stdDev, min: values[0], max: values[n - 1], passCount, failCount: n - passCount, loLimit, hiLimit };
-  };
 
-  const exportCSV = () => {
-    const headers = ['test_num', 'test_txt', 'site_num', 'head_num', 'result', 'units', 'lo_limit', 'hi_limit'];
-    if (canMergeTests && filenames.length > 1) headers.unshift('file_name');
-    const rows = [];
-    selectedTests.forEach((testNum) => {
-      const testInfo = testList.find((t) => t.test_num === testNum);
-      const { results = [] } = resultsMap[testNum] || {};
-      results.forEach((r) => {
-        rows.push(
-          headers.map((h) => {
-            if (h === 'test_num') return testNum;
-            if (h === 'test_txt') return testInfo?.test_txt || '';
-            return r[h] ?? '';
-          }).join(','),
-        );
-      });
-    });
-    if (!rows.length) {
-      message.warning('暂无数据可导出');
-      return;
+    let cp = null;
+    let cpk = null;
+    let cpu = null;
+    let cpl = null;
+
+    if (stdDev > 0) {
+      if (loLimit !== null && hiLimit !== null) {
+        cp = (hiLimit - loLimit) / (6 * stdDev);
+        cpu = (hiLimit - mean) / (3 * stdDev);
+        cpl = (mean - loLimit) / (3 * stdDev);
+        cpk = Math.min(cpu, cpl);
+      } else if (hiLimit !== null) {
+        cpu = (hiLimit - mean) / (3 * stdDev);
+        cpk = cpu;
+      } else if (loLimit !== null) {
+        cpl = (mean - loLimit) / (3 * stdDev);
+        cpk = cpl;
+      }
     }
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `test_results_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    return {
+      mean,
+      median,
+      stdDev,
+      min: values[0],
+      max: values[n - 1],
+      passCount,
+      failCount: n - passCount,
+      loLimit,
+      hiLimit,
+      cp,
+      cpk,
+      cpu,
+      cpl,
+    };
   };
 
   return (
@@ -230,11 +234,6 @@ function TestResults({ filenames = [], canMergeTests = true, programWarning = fa
               </Option>
             ))}
           </Select>
-          {selectedTests.length > 0 && (
-            <Button type="primary" className="apple-primary-btn" onClick={exportCSV}>
-              导出 CSV
-            </Button>
-          )}
         </Space>
       </Card>
 
@@ -243,11 +242,85 @@ function TestResults({ filenames = [], canMergeTests = true, programWarning = fa
       {selectedTests.map((testNum) => {
         const testInfo = testList.find((t) => t.test_num === testNum);
         const { results = [], loading: testLoading } = resultsMap[testNum] || { loading: true };
-        const histData = generateHistogramData(results);
+        const hist = generateHistogramData(results);
+        const histData = hist?.bins || [];
         const stats = calculateStats(results, testInfo);
+        const showLimits = !!showLimitsMap[testNum];
+
+        const exportCurrentTestCSV = () => {
+          const headers = ['test_num', 'test_txt', 'site_num', 'head_num', 'result', 'units', 'lo_limit', 'hi_limit'];
+          if (canMergeTests && filenames.length > 1) headers.unshift('file_name');
+          const rows = results.map((r) =>
+            headers
+              .map((h) => {
+                if (h === 'test_num') return testNum;
+                if (h === 'test_txt') return testInfo?.test_txt || '';
+                return r[h] ?? '';
+              })
+              .join(','),
+          );
+          if (!rows.length) {
+            message.warning('该测试项暂无数据可导出');
+            return;
+          }
+          const csv = [headers.join(','), ...rows].join('\n');
+          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `test_${testNum}_${Date.now()}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        const xMin = hist
+          ? (showLimits
+              ? Math.min(
+                  hist.minVal,
+                  stats?.loLimit ?? hist.minVal,
+                  stats?.hiLimit ?? hist.minVal,
+                )
+              : hist.minVal)
+          : undefined;
+        const xMax = hist
+          ? (showLimits
+              ? Math.max(
+                  hist.maxVal,
+                  stats?.loLimit ?? hist.maxVal,
+                  stats?.hiLimit ?? hist.maxVal,
+                )
+              : hist.maxVal)
+          : undefined;
 
         return (
-          <Card className="apple-glass-panel results-test-card" key={testNum} title={`#${testNum} - ${testInfo?.test_txt || ''}`}>
+          <Card
+            className="apple-glass-panel results-test-card"
+            key={testNum}
+            title={`#${testNum} - ${testInfo?.test_txt || ''}`}
+            extra={(
+              <Space size={10}>
+                <Button
+                  size="small"
+                  type="primary"
+                  className="apple-primary-btn"
+                  onClick={exportCurrentTestCSV}
+                  disabled={testLoading || results.length === 0}
+                >
+                  导出当前CSV
+                </Button>
+                <Space size={6}>
+                  <span>显示 Lo/Hi</span>
+                  <Switch
+                    size="small"
+                    checked={showLimits}
+                    onChange={(checked) =>
+                      setShowLimitsMap((prev) => ({ ...prev, [testNum]: checked }))
+                    }
+                  />
+                </Space>
+              </Space>
+            )}
+          >
             {testLoading ? (
               <div className="results-loading-wrap">
                 <Spin tip="加载中..." />
@@ -294,34 +367,72 @@ function TestResults({ filenames = [], canMergeTests = true, programWarning = fa
                       <div className="results-stats-label">失败</div>
                       <div className="results-stats-value is-fail">{stats.failCount}</div>
                     </div>
+                    {stats.cp !== null && (
+                      <div>
+                        <div className="results-stats-label">Cp</div>
+                        <div className="results-stats-value">{stats.cp.toFixed(4)}</div>
+                      </div>
+                    )}
+                    {stats.cpu !== null && (
+                      <div>
+                        <div className="results-stats-label">Cpu</div>
+                        <div className="results-stats-value">{stats.cpu.toFixed(4)}</div>
+                      </div>
+                    )}
+                    {stats.cpl !== null && (
+                      <div>
+                        <div className="results-stats-label">Cpl</div>
+                        <div className="results-stats-value">{stats.cpl.toFixed(4)}</div>
+                      </div>
+                    )}
+                    {stats.cpk !== null && (
+                      <div>
+                        <div className="results-stats-label">Cpk</div>
+                        <div className="results-stats-value">{stats.cpk.toFixed(4)}</div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {histData.length > 0 && (
                   <>
-                    <div className="results-chart-tip">拖动下方滑块可缩放图表范围</div>
+                    <div className="results-chart-tip">
+                      {showLimits ? '当前显示 Lo/Hi 规格线，横轴已扩展覆盖规格范围。' : '当前优先显示分布细节（横轴仅按数据范围）。'}
+                    </div>
                     <ResponsiveContainer width="100%" height={340}>
                       <BarChart data={histData} margin={{ top: 5, right: 20, left: 0, bottom: 80 }}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="range" angle={-45} textAnchor="end" height={80} interval="preserveStartEnd" />
+                        <XAxis
+                          type="number"
+                          dataKey="x"
+                          domain={[xMin, xMax]}
+                          tickFormatter={(v) => Number(v).toFixed(4)}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
                         <YAxis />
-                        <Tooltip formatter={(val) => [val, '频数']} labelFormatter={(label) => `值: ${label}`} />
+                        <Tooltip
+                          formatter={(val) => [val, '频数']}
+                          labelFormatter={(label) => `值: ${Number(label).toFixed(4)}`}
+                        />
                         <Legend verticalAlign="top" />
-                        <Brush dataKey="range" height={25} stroke="#1890ff" travellerWidth={8} />
                         <Bar dataKey="count" fill="#1890ff" name="频数" isAnimationActive={false} />
-                        {stats?.hiLimit != null && (
+                        {showLimits && stats?.hiLimit != null && (
                           <ReferenceLine
-                            x={stats.hiLimit.toFixed(4)}
+                            x={stats.hiLimit}
                             stroke="#cf1322"
-                            label={{ value: `Hi: ${stats.hiLimit.toFixed(4)}`, position: 'top', fontSize: 11 }}
+                            strokeWidth={2}
+                            label={{ value: `Hi: ${stats.hiLimit.toFixed(4)}`, position: 'insideTopRight', fontSize: 11, fill: '#ff7875' }}
                             strokeDasharray="5 5"
                           />
                         )}
-                        {stats?.loLimit != null && (
+                        {showLimits && stats?.loLimit != null && (
                           <ReferenceLine
-                            x={stats.loLimit.toFixed(4)}
+                            x={stats.loLimit}
                             stroke="#cf1322"
-                            label={{ value: `Lo: ${stats.loLimit.toFixed(4)}`, position: 'top', fontSize: 11 }}
+                            strokeWidth={2}
+                            label={{ value: `Lo: ${stats.loLimit.toFixed(4)}`, position: 'insideTopLeft', fontSize: 11, fill: '#ff7875' }}
                             strokeDasharray="5 5"
                           />
                         )}

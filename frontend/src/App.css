@@ -244,6 +244,7 @@ body,
   padding: 0 24px;
   border-bottom: 1px solid rgba(190, 224, 255, 0.2);
   box-shadow: 0 14px 30px rgba(6, 10, 18, 0.42);
+  animation: glassFadeInDown 0.5s ease both;
 }
 
 .apple-brand-link {
@@ -314,10 +315,14 @@ body,
   background: linear-gradient(135deg, #8ec6ff 0%, #5f9fed 48%, #4a79c4 100%) !important;
   border: 1px solid rgba(202, 229, 255, 0.4) !important;
   color: #f6fbff !important;
+  box-shadow: 0 8px 18px rgba(71, 121, 197, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .apple-primary-btn.ant-btn-primary:hover {
   filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(101, 155, 235, 0.45);
 }
 
 .upload-control-wrap {
@@ -402,6 +407,7 @@ body,
 
 .file-detail-tabs.ant-tabs {
   padding: 14px 18px !important;
+  animation: glassFadeInUp 0.45s ease both;
 }
 
 .file-detail-tabs .ant-tabs-nav {
@@ -410,11 +416,13 @@ body,
 
 .file-detail-tabs .ant-tabs-tab {
   color: #bdd4ec !important;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
 }
 
 .file-detail-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: #f2f9ff !important;
   font-weight: 600;
+  text-shadow: 0 0 10px rgba(206, 229, 255, 0.45);
 }
 
 .file-detail-tabs .ant-tabs-ink-bar {
@@ -728,6 +736,10 @@ body,
   display: block;
 }
 
+.wafer-hover-tooltip {
+  pointer-events: none;
+}
+
 .wafer-legend-card {
   position: absolute;
   right: 14px;
@@ -804,5 +816,27 @@ body,
 
   .wafer-map-svg {
     min-height: 280px;
+  }
+}
+
+@keyframes glassFadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glassFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

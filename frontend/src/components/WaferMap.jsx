@@ -1,4 +1,4 @@
-import React, { useId, useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { Card, Empty } from 'antd';
 
 /**
@@ -16,6 +16,7 @@ function WaferMap({ waferData }) {
 
   const { dies, wafer_id = '', total_dies = 0 } = waferData;
   const clipId = useId().replace(/:/g, '_');
+  const [hoveredDie, setHoveredDie] = useState(null);
 
   const mapData = useMemo(() => {
     const xs = dies.map((d) => d.x_coord);
@@ -183,6 +184,12 @@ function WaferMap({ waferData }) {
                   stroke="#d8ecff"
                   strokeOpacity="0.1"
                   strokeWidth="0.35"
+                  onMouseEnter={() => {
+                    const anchorX = (die.x_coord - mapData.minX) * mapData.cellSize + mapData.framePadding + mapData.cellSize * 0.5;
+                    const anchorY = (die.y_coord - mapData.minY) * mapData.cellSize + mapData.framePadding + mapData.cellSize * 0.5;
+                    setHoveredDie({ die, anchorX, anchorY });
+                  }}
+                  onMouseLeave={() => setHoveredDie(null)}
                 >
                   <title>{`X:${die.x_coord} Y:${die.y_coord} | HBin:${die.hard_bin} SBin:${die.soft_bin}`}</title>
                 </rect>
@@ -207,6 +214,45 @@ function WaferMap({ waferData }) {
               fill="#a8c6e6"
               opacity="0.55"
             />
+
+            {hoveredDie && (
+              <g className="wafer-hover-tooltip">
+                <rect
+                  x={Math.max(10, Math.min(mapData.viewWidth - 154, hoveredDie.anchorX + 10))}
+                  y={Math.max(10, hoveredDie.anchorY - 54)}
+                  width="144"
+                  height="44"
+                  rx="8"
+                  fill="rgba(29, 40, 58, 0.84)"
+                  stroke="rgba(188, 220, 255, 0.36)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={Math.max(16, Math.min(mapData.viewWidth - 146, hoveredDie.anchorX + 16))}
+                  y={Math.max(24, hoveredDie.anchorY - 38)}
+                  fill="#ddecff"
+                  fontSize="9"
+                >
+                  {`Die ${hoveredDie.die.x_coord}, ${hoveredDie.die.y_coord}`}
+                </text>
+                <text
+                  x={Math.max(16, Math.min(mapData.viewWidth - 146, hoveredDie.anchorX + 16))}
+                  y={Math.max(36, hoveredDie.anchorY - 26)}
+                  fill="#ddecff"
+                  fontSize="9"
+                >
+                  {`HBin ${hoveredDie.die.hard_bin} | SBin ${hoveredDie.die.soft_bin}`}
+                </text>
+                <text
+                  x={Math.max(16, Math.min(mapData.viewWidth - 146, hoveredDie.anchorX + 16))}
+                  y={Math.max(48, hoveredDie.anchorY - 14)}
+                  fill="#b7d6f7"
+                  fontSize="9"
+                >
+                  {`Site ${hoveredDie.die.site_num}`}
+                </text>
+              </g>
+            )}
           </svg>
 
           <div className="wafer-legend-card">
