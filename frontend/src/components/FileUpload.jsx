@@ -23,18 +23,14 @@ function FileUpload({ onUploadSuccess }) {
   };
 
   return (
-    <div>
-      <Upload
-        customRequest={handleUpload}
-        accept=".stdf,.std"
-        showUploadList={false}
-      >
-        <Button type="primary" icon={<UploadOutlined />} loading={uploading}>
+    <div className="upload-control-wrap">
+      <Upload customRequest={handleUpload} accept=".stdf,.std" showUploadList={false}>
+        <Button type="primary" icon={<UploadOutlined />} loading={uploading} className="apple-primary-btn">
           上传 STDF 文件
         </Button>
       </Upload>
       {uploading ? (
-        <div style={{ marginTop: 12 }}>
+        <div className="upload-progress-wrap">
           <Progress percent={progress} status="active" />
         </div>
       ) : null}

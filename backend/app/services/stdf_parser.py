@@ -49,8 +49,10 @@ class StdfRecordCollector:
         result = record.get("RESULT")
         lo_limit = record.get("LO_LIMIT")
         hi_limit = record.get("HI_LIMIT")
-        if test_flag is not None:
-            return (test_flag & 0x40) != 0
+        # Check TEST_FLG bit 6 (explicit fail flag)
+        if test_flag is not None and (test_flag & 0x40) != 0:
+            return True
+        # Also check result against limits (many STDF files don't set TEST_FLG)
         if result is not None:
             if lo_limit is not None and result < lo_limit:
                 return True

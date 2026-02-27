@@ -152,11 +152,6 @@ body,
   color: #3f8600 !important;
 }
 
-svg {
-  fill: #e0e0e0 !important;
-  stroke: #e0e0e0 !important;
-}
-
 .ant-icon svg {
   fill: #e0e0e0 !important;
 }
@@ -235,4 +230,579 @@ svg {
 
 .test-chart-container {
   margin-top: 16px;
+}
+
+.apple-layout {
+  min-height: 100vh;
+  background: transparent !important;
+}
+
+.apple-header {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(21, 35, 55, 0.96) 0%, rgba(15, 26, 42, 0.92) 100%) !important;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(190, 224, 255, 0.2);
+  box-shadow: 0 14px 30px rgba(6, 10, 18, 0.42);
+}
+
+.apple-brand-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.apple-brand-icon {
+  font-size: 24px;
+  color: #b8daff !important;
+  margin-right: 10px;
+}
+
+.apple-brand-title.ant-typography {
+  margin: 0 !important;
+  color: #eef6ff !important;
+  letter-spacing: 0.3px;
+}
+
+.apple-content {
+  padding: 24px;
+  background: transparent;
+  flex: 1;
+}
+
+.apple-footer {
+  text-align: center;
+  color: #a9bdd5 !important;
+  background: rgba(11, 19, 31, 0.74) !important;
+  border-top: 1px solid rgba(181, 216, 255, 0.2);
+}
+
+.apple-glass-panel.ant-card {
+  background: linear-gradient(160deg, rgba(28, 42, 62, 0.86) 0%, rgba(18, 29, 45, 0.9) 100%) !important;
+  border: 1px solid rgba(184, 220, 255, 0.2) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 18px 36px rgba(8, 12, 20, 0.32) !important;
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-toolbar-card .ant-card-body {
+  padding: 16px !important;
+}
+
+.home-toolbar {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.home-folder-icon {
+  font-size: 24px;
+  color: #cae3ff !important;
+}
+
+.home-title.ant-typography {
+  margin: 0 !important;
+  color: #f2f8ff !important;
+}
+
+.apple-primary-btn.ant-btn-primary {
+  background: linear-gradient(135deg, #8ec6ff 0%, #5f9fed 48%, #4a79c4 100%) !important;
+  border: 1px solid rgba(202, 229, 255, 0.4) !important;
+  color: #f6fbff !important;
+}
+
+.apple-primary-btn.ant-btn-primary:hover {
+  filter: brightness(1.06);
+}
+
+.upload-control-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-progress-wrap {
+  margin-top: 2px;
+}
+
+.home-parse-progress {
+  margin-top: 14px;
+}
+
+.home-parse-label {
+  margin-bottom: 8px;
+  color: #d9ebff;
+  font-weight: 600;
+}
+
+.apple-table .ant-table {
+  background: transparent !important;
+  color: #dcecff !important;
+}
+
+.apple-table .ant-table-thead > tr > th {
+  background: rgba(164, 200, 241, 0.18) !important;
+  color: #e9f3ff !important;
+  border-bottom-color: rgba(174, 208, 248, 0.2) !important;
+  font-weight: 600 !important;
+}
+
+.apple-table .ant-table-tbody > tr {
+  background: transparent !important;
+  border-bottom-color: rgba(168, 204, 247, 0.12) !important;
+}
+
+.apple-table .ant-table-tbody > tr > td {
+  color: #dbeeff !important;
+  border-bottom-color: rgba(168, 204, 247, 0.12) !important;
+}
+
+.apple-click-row {
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apple-click-row:hover td {
+  background: rgba(152, 193, 242, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(177, 213, 250, 0.16);
+}
+
+.home-empty .ant-empty-description {
+  color: #a3b9d2 !important;
+}
+
+.file-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.file-detail-back-btn.ant-btn {
+  align-self: flex-start;
+  border-radius: 999px;
+  background: rgba(171, 207, 244, 0.14);
+  border-color: rgba(189, 219, 250, 0.34);
+  color: #e5f2ff;
+}
+
+.file-detail-progress {
+  padding: 12px 14px;
+}
+
+.file-detail-progress-text {
+  margin-bottom: 8px;
+  color: #d6e9ff;
+  font-weight: 600;
+}
+
+.file-detail-tabs.ant-tabs {
+  padding: 14px 18px !important;
+}
+
+.file-detail-tabs .ant-tabs-nav {
+  margin-bottom: 16px !important;
+}
+
+.file-detail-tabs .ant-tabs-tab {
+  color: #bdd4ec !important;
+}
+
+.file-detail-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #f2f9ff !important;
+  font-weight: 600;
+}
+
+.file-detail-tabs .ant-tabs-ink-bar {
+  background: #a6d3ff !important;
+}
+
+.file-detail-chip-wrap {
+  margin-bottom: 16px;
+}
+
+.file-detail-chip-label {
+  color: #bed8f1;
+}
+
+.file-detail-wafer-item {
+  margin-bottom: 16px;
+}
+
+.file-detail-file-label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #c7dff7;
+}
+
+.summary-mini-card .ant-statistic-title {
+  color: #c9def5 !important;
+}
+
+.summary-mini-card .ant-statistic-content {
+  color: #f0f7ff !important;
+}
+
+.results-view .ant-select-selection-placeholder {
+  color: #a6bcd3 !important;
+}
+
+.summary-top-row {
+  margin-bottom: 24px;
+}
+
+.summary-section-card {
+  margin-bottom: 16px;
+}
+
+.site-yield-item {
+  font-size: 12px;
+}
+
+.site-yield-title {
+  font-weight: 700;
+}
+
+.site-yield-pass {
+  color: #3f8600;
+}
+
+.site-yield-fail {
+  color: #cf1322;
+}
+
+.site-yield-rate {
+  font-weight: 700;
+}
+
+.site-yield-rate.is-good {
+  color: #3f8600;
+}
+
+.site-yield-rate.is-bad {
+  color: #cf1322;
+}
+
+.summary-bin-layout {
+  display: flex;
+  gap: 24px;
+}
+
+.summary-bin-chart-wrap {
+  flex: 0 0 500px;
+}
+
+.summary-panel-title {
+  margin-bottom: 16px;
+  text-align: center;
+  color: #dcecff;
+}
+
+.summary-panel-title-left {
+  text-align: left;
+  margin-top: 0;
+}
+
+.summary-bin-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.summary-bin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-bin-item {
+  padding: 12px;
+  border: 1px solid rgba(181, 216, 255, 0.24);
+  border-radius: 8px;
+  background: rgba(26, 58, 82, 0.3);
+}
+
+.summary-bin-item-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.summary-bin-item-title.is-pass {
+  color: #52c41a;
+}
+
+.summary-bin-item-title.is-fail {
+  color: #ff4d4f;
+}
+
+.summary-failed-tests {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.summary-failed-test-line {
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+
+.summary-no-failed-tests {
+  font-size: 12px;
+  color: #b5c8dc;
+  font-style: italic;
+}
+
+.summary-empty-tip {
+  text-align: center;
+  color: #b5c8dc;
+  padding: 40px 0;
+}
+
+.summary-empty-tip-left {
+  text-align: left;
+  padding: 0;
+}
+
+.summary-empty-tip-full {
+  width: 100%;
+}
+
+.results-warning {
+  margin-bottom: 16px;
+}
+
+.results-toolbar-card {
+  margin-bottom: 16px;
+}
+
+.results-toolbar-space {
+  width: 100%;
+}
+
+.results-file-select {
+  width: 280px;
+}
+
+.results-test-select {
+  min-width: 500px;
+}
+
+.results-test-card {
+  margin-bottom: 16px;
+}
+
+.results-loading-wrap {
+  text-align: center;
+  padding: 40px;
+}
+
+.results-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(173, 209, 247, 0.16);
+  border-radius: 10px;
+}
+
+.results-stats-label {
+  font-size: 12px;
+  color: #b1c7de;
+}
+
+.results-stats-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #eaf4ff;
+}
+
+.results-stats-value.is-pass {
+  color: #3f8600;
+}
+
+.results-stats-value.is-fail {
+  color: #cf1322;
+}
+
+.results-chart-tip {
+  font-size: 12px;
+  color: #b1c7de;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+  .home-toolbar {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .summary-bin-layout {
+    flex-direction: column;
+  }
+
+  .summary-bin-chart-wrap {
+    flex: 1 1 auto;
+  }
+
+  .results-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .results-test-select {
+    min-width: 280px;
+  }
+}
+
+/* Apple-style Wafer Map */
+.wafer-apple-card.ant-card {
+  background: linear-gradient(160deg, rgba(33, 46, 66, 0.9) 0%, rgba(21, 31, 48, 0.92) 100%) !important;
+  border: 1px solid rgba(172, 212, 255, 0.2) !important;
+  border-radius: 22px !important;
+  overflow: hidden;
+}
+
+.wafer-apple-card .ant-card-body {
+  padding: 16px !important;
+}
+
+.wafer-apple-header {
+  margin-bottom: 12px;
+}
+
+.wafer-apple-title {
+  display: block;
+  color: #e9f3ff;
+  font-size: 16px;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.wafer-apple-pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wafer-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(177, 212, 252, 0.16);
+  border: 1px solid rgba(201, 224, 255, 0.24);
+  color: #dbeeff;
+  font-size: 12px;
+  backdrop-filter: blur(6px);
+}
+
+.wafer-apple-shell {
+  background: linear-gradient(180deg, rgba(156, 198, 250, 0.15) 0%, rgba(51, 73, 101, 0.12) 100%);
+  border: 1px solid rgba(184, 220, 255, 0.22);
+  border-radius: 18px;
+  padding: 10px;
+}
+
+.wafer-map-panel {
+  position: relative;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(180, 214, 255, 0.18) 0%, rgba(53, 75, 104, 0.18) 100%);
+  border: 1px solid rgba(184, 216, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 16px 35px rgba(10, 16, 28, 0.32);
+  padding: 10px;
+  min-height: 360px;
+}
+
+.wafer-map-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 330px;
+  display: block;
+}
+
+.wafer-legend-card {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 220px;
+  border-radius: 12px;
+  background: rgba(22, 32, 48, 0.68);
+  border: 1px solid rgba(182, 214, 255, 0.24);
+  padding: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.wafer-legend-title {
+  color: #e9f3ff;
+  font-size: 11px;
+  margin-bottom: 8px;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+}
+
+.wafer-legend-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #dcecff;
+  font-size: 11px;
+  line-height: 1.35;
+  margin-bottom: 5px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.dot-good {
+  background: #4de38e;
+}
+
+.dot-other {
+  background: #95a9c2;
+}
+
+.wafer-stats-card {
+  margin-top: 10px;
+  border-radius: 12px;
+  background: rgba(20, 30, 45, 0.62);
+  border: 1px solid rgba(180, 214, 255, 0.24);
+  padding: 10px 12px;
+  color: #dbeeff;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.wafer-apple-footnote {
+  margin-top: 8px;
+  color: rgba(221, 237, 255, 0.74);
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .wafer-legend-card {
+    position: static;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .wafer-map-panel {
+    min-height: 320px;
+  }
+
+  .wafer-map-svg {
+    min-height: 280px;
+  }
 }
