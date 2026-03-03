@@ -145,7 +145,7 @@ function Home() {
           <Space>
             <FolderOpenOutlined className="home-folder-icon" />
             <Title level={4} className="home-title">
-              STDF 文件管理
+              OMNIBOT 文件管理
             </Title>
           </Space>
           <Space>

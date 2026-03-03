@@ -4,6 +4,7 @@ import os
 import threading
 import uuid
 import time
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from pystdf.IO import Parser
@@ -302,12 +303,40 @@ class StdfParserService:
                 return ""
             return str(value)
 
+        def _format_stdf_time(value) -> str:
+            """将 STDF 时间字段格式化为可读时间。
+            STDF 中常见为 Unix 秒级时间戳；若不是时间戳则原样返回字符串。
+            """
+            if value is None:
+                return ""
+            try:
+                if isinstance(value, (int, float)):
+                    ts = int(value)
+                elif isinstance(value, str):
+                    raw = value.strip()
+                    if not raw:
+                        return ""
+                    if raw.isdigit() or (raw.startswith("-") and raw[1:].isdigit()):
+                        ts = int(raw)
+                    else:
+                        return raw
+                else:
+                    return str(value)
+
+                if ts <= 0:
+                    return str(value)
+
+                dt_local = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone()
+                return dt_local.strftime("%Y-%m-%d %H:%M:%S %Z")
+            except Exception:
+                return str(value)
+
         mir_info = None
         if collector.mir:
             mir = collector.mir
             mir_info = MirInfo(
-                setup_time=_safe_str(mir.get("SETUP_T")),
-                start_time=_safe_str(mir.get("START_T")),
+                setup_time=_format_stdf_time(mir.get("SETUP_T")),
+                start_time=_format_stdf_time(mir.get("START_T")),
                 station_number=mir.get("STAT_NUM") or 0,
                 mode_code=_safe_str(mir.get("MODE_COD")),
                 lot_id=_safe_str(mir.get("LOT_ID")),
@@ -326,7 +355,7 @@ class StdfParserService:
         if collector.mrr:
             mrr = collector.mrr
             mrr_info = MrrInfo(
-                finish_time=_safe_str(mrr.get("FINISH_T")),
+                finish_time=_format_stdf_time(mrr.get("FINISH_T")),
                 disposition_code=_safe_str(mrr.get("DISP_COD")),
                 user_description=_safe_str(mrr.get("USR_DESC")),
                 exec_description=_safe_str(mrr.get("EXC_DESC")),
