@@ -2,6 +2,7 @@
 
 import json
 import hashlib
+import gzip
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from pathlib import Path
@@ -44,7 +45,26 @@ class CacheService:
                 file_record.last_accessed = datetime.utcnow()
                 db.commit()
             
-            return json.loads(data_record.data_json)
+            # 尝试解压数据
+            try:
+                raw_data = data_record.data_json
+                if isinstance(raw_data, memoryview):
+                    raw_data = raw_data.tobytes()
+                
+                # 检查是否是 gzip 数据 (Gzip magic number: 0x1f 0x8b)
+                if raw_data and len(raw_data) > 2 and raw_data[:2] == b'\x1f\x8b':
+                    decompressed = gzip.decompress(raw_data)
+                    return json.loads(decompressed.decode('utf-8'))
+                else:
+                    # 如果不是 gzip，尝试作为普通 JSON (处理迁移或旧数据)
+                    # 兼容 bytes 或 str
+                    return json.loads(raw_data.decode('utf-8') if isinstance(raw_data, bytes) else raw_data)
+            except (IOError, json.JSONDecodeError, UnicodeDecodeError):
+                # 备选方案：如果已经是 Text 格式（在某些 DB 驱动下可能发生）
+                try:
+                    return json.loads(data_record.data_json)
+                except:
+                    return None
         return None
 
     @staticmethod
@@ -87,11 +107,15 @@ class CacheService:
             STDFData.file_id == file_id, STDFData.data_type == data_type
         ).delete()
 
+        # 转换为 JSON 并压缩
+        json_data = json.dumps(data, ensure_ascii=False).encode('utf-8')
+        compressed_data = gzip.compress(json_data)
+
         # 保存新数据
         data_record = STDFData(
             file_id=file_id,
             data_type=data_type,
-            data_json=json.dumps(data, ensure_ascii=False),
+            data_json=compressed_data,
         )
         db.add(data_record)
         db.commit()

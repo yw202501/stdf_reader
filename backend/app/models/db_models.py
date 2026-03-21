@@ -1,7 +1,7 @@
 """数据库 ORM 模型"""
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, Index, LargeBinary
 from sqlalchemy.orm import relationship
 
 from ..database import Base
@@ -33,7 +33,7 @@ class STDFData(Base):
     id = Column(Integer, primary_key=True, index=True)
     file_id = Column(Integer, ForeignKey("stdf_files.id", ondelete="CASCADE"), nullable=False)
     data_type = Column(String(50), nullable=False)  # 数据类型: summary, wafer_map, test_data, test_list
-    data_json = Column(Text, nullable=False)  # JSON 格式的数据
+    data_json = Column(LargeBinary, nullable=False)  # Gzip 压缩后的数据
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # 关联关系
