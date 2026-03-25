@@ -126,14 +126,24 @@ function TestSummary({ summary }) {
                 <h4 className="summary-panel-title summary-panel-title-left">各Bin失败测试项</h4>
                 {hbin_details && hbin_details.length > 0 ? (
                   <div className="summary-bin-list">
-                    {hbin_details.map((binInfo) => (
+                    {hbin_details.map((binInfo) => {
+                      const sortedTests = binInfo.failed_tests
+                        ? [...binInfo.failed_tests].sort((a, b) => {
+                            const getRate = (s) => {
+                              const m = s.match(/\((\d+\.?\d*)%\)$/);
+                              return m ? parseFloat(m[1]) : 0;
+                            };
+                            return getRate(b) - getRate(a);
+                          })
+                        : [];
+                      return (
                       <div key={binInfo.bin_num} className="summary-bin-item">
                         <div className={`summary-bin-item-title ${binInfo.bin_num === 1 ? 'is-pass' : 'is-fail'}`}>
                           Bin {binInfo.bin_num}: {binInfo.count} ({binInfo.percent}%)
                         </div>
-                        {binInfo.failed_tests && binInfo.failed_tests.length > 0 ? (
+                        {sortedTests.length > 0 ? (
                           <div className="summary-failed-tests">
-                            {binInfo.failed_tests.map((test, idx) => (
+                            {sortedTests.map((test, idx) => (
                               <div key={idx} className="summary-failed-test-line">
                                 • {test}
                               </div>
@@ -143,7 +153,8 @@ function TestSummary({ summary }) {
                           <div className="summary-no-failed-tests">{binInfo.bin_num === 1 ? '通过' : '无失败测试项数据'}</div>
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 ) : (
                   <div className="summary-empty-tip summary-empty-tip-left">暂无详细信息</div>
