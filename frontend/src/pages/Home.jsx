@@ -64,16 +64,56 @@ function Home() {
       ),
     },
     {
+      title: 'Lot Number',
+      dataIndex: 'lot_id',
+      width: 150,
+      render: (val) => val || <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Device Name',
+      dataIndex: 'part_type',
+      width: 150,
+      render: (val) => val || <span style={{ color: '#bbb' }}>—</span>,
+    },
+    {
+      title: 'Test Sites',
+      dataIndex: 'sites',
+      width: 130,
+      render: (sites) =>
+        sites && sites.length > 0 ? (
+          <Space size={4} wrap>
+            {sites.map((s) => (
+              <Tag key={s} style={{ margin: 0 }}>{s}</Tag>
+            ))}
+          </Space>
+        ) : (
+          <span style={{ color: '#bbb' }}>—</span>
+        ),
+    },
+    {
+      title: 'Test Yield',
+      dataIndex: 'yield_rate',
+      width: 120,
+      render: (val) =>
+        val != null ? (
+          <Tag color={val >= 90 ? 'success' : val >= 70 ? 'warning' : 'error'}>
+            {val.toFixed(2)}%
+          </Tag>
+        ) : (
+          <span style={{ color: '#bbb' }}>—</span>
+        ),
+    },
+    {
       title: '大小',
       dataIndex: 'size',
       render: formatSize,
-      width: 120,
+      width: 100,
     },
     {
       title: '修改时间',
       dataIndex: 'modified',
       render: formatDate,
-      width: 200,
+      width: 180,
     },
   ];
 

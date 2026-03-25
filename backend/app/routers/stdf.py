@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ..services.stdf_parser import StdfParserService
 from ..services.cache_service import CacheService
 from ..database import get_db
+from ..models.db_models import STDFFile
 from ..models.stdf_models import (
     FileListResponse,
     StdfSummaryResponse,
@@ -28,7 +29,7 @@ parser_service = StdfParserService()
 
 
 @router.get("/files", response_model=FileListResponse)
-async def list_stdf_files():
+async def list_stdf_files(db: Session = Depends(get_db)):
     """列出 data 目录下所有的 STDF 文件"""
     if not DATA_DIR.exists():
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -36,17 +37,26 @@ async def list_stdf_files():
     files = []
     for f in DATA_DIR.iterdir():
         if f.suffix.lower() in (".stdf", ".std"):
-            files.append(
-                {
-                    "name": f.name,
-                    "size": f.stat().st_size,
-                    "modified": f.stat().st_mtime,
-                }
-            )
-    
+            file_info = {
+                "name": f.name,
+                "size": f.stat().st_size,
+                "modified": f.stat().st_mtime,
+            }
+            # 从缓存中读取摘要信息（不触发解析）
+            cached_file = db.query(STDFFile).filter(STDFFile.filename == f.name).first()
+            if cached_file:
+                summary_data = CacheService.get_cached_data(db, cached_file.id, "summary")
+                if summary_data:
+                    mir = summary_data.get("mir") or {}
+                    file_info["lot_id"] = mir.get("lot_id") or ""
+                    file_info["part_type"] = mir.get("part_type") or ""
+                    file_info["yield_rate"] = summary_data.get("yield_rate")
+                    file_info["sites"] = summary_data.get("sites", [])
+            files.append(file_info)
+
     # Sort files by modification time (most recent first)
     files.sort(key=lambda x: x["modified"], reverse=True)
-    
+
     return FileListResponse(files=files)
 
 

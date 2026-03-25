@@ -11,6 +11,10 @@ class FileInfo(BaseModel):
     name: str
     size: int
     modified: float
+    lot_id: Optional[str] = None
+    part_type: Optional[str] = None
+    yield_rate: Optional[float] = None
+    sites: Optional[List[int]] = None
 
 
 class FileListResponse(BaseModel):
