@@ -32,6 +32,7 @@ class StdfRecordCollector:
     def __init__(self):
         self.mir: Optional[Dict] = None
         self.mrr: Optional[Dict] = None
+        self.wcr: Optional[Dict] = None
         self.ptr_list: List[Dict] = []
         self.ftr_list: List[Dict] = []
         self.prr_list: List[Dict] = []
@@ -46,6 +47,7 @@ class StdfRecordCollector:
         self._ptr_buffer: Dict[tuple, List[Dict]] = {}
 
     def _is_fail(self, record: Dict) -> bool:
+        # ... (rest of _is_fail method)
         test_flag = record.get("TEST_FLG")
         result = record.get("RESULT")
         lo_limit = record.get("LO_LIMIT")
@@ -85,6 +87,8 @@ class StdfRecordCollector:
             self.mir = record
         elif isinstance(record_obj, V4.Mrr):
             self.mrr = record
+        elif isinstance(record_obj, V4.Wcr):
+            self.wcr = record
         elif isinstance(record_obj, V4.Ptr):
             self.ptr_list.append(record)
             head = record.get("HEAD_NUM", 255)
@@ -656,10 +660,17 @@ class StdfParserService:
 
         dies = []
         for prr in collector.prr_list:
+            x = prr.get("X_COORD", -32768)
+            y = prr.get("Y_COORD", -32768)
+            
+            # STDF spec: -32768 means missing coordinate
+            if x == -32768 or y == -32768:
+                continue
+
             dies.append(
                 DieResult(
-                    x_coord=prr.get("X_COORD", 0),
-                    y_coord=prr.get("Y_COORD", 0),
+                    x_coord=x,
+                    y_coord=y,
                     hard_bin=prr.get("HARD_BIN", 0),
                     soft_bin=prr.get("SOFT_BIN", 0),
                     part_flag=prr.get("PART_FLG", 0),
@@ -671,10 +682,27 @@ class StdfParserService:
         if collector.wir_list:
             wafer_id = collector.wir_list[0].get("WAFER_ID", "")
 
+        hbin_names = {}
+        for hbr in collector.hbr_list:
+            hbin_num = hbr.get("HBIN_NUM")
+            hbin_nam = hbr.get("HBIN_NAM")
+            if hbin_num is not None:
+                hbin_names[hbin_num] = hbin_nam or f"Bin {hbin_num}"
+
+        sbin_names = {}
+        for sbr in collector.sbr_list:
+            sbin_num = sbr.get("SBIN_NUM")
+            sbin_nam = sbr.get("SBIN_NAM")
+            if sbin_num is not None:
+                sbin_names[sbin_num] = sbin_nam or f"SBin {sbin_num}"
+
         wafer_response = WaferMapResponse(
             wafer_id=wafer_id,
             total_dies=len(dies),
             dies=dies,
+            wcr_info=collector.wcr,
+            hbin_names=hbin_names,
+            sbin_names=sbin_names,
         )
         
         # 保存到数据库
