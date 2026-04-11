@@ -14,17 +14,46 @@ function WaferMap({ waferData }) {
     );
   }
 
-  const { dies, wafer_id = '', total_dies = 0 } = waferData;
+  const { dies, wafer_id = '', total_dies = 0, wcr_info, hbin_names = {}, sbin_names = {} } = waferData;
   const clipId = useId().replace(/:/g, '_');
   const [hoveredDie, setHoveredDie] = useState(null);
 
   const mapData = useMemo(() => {
     const xs = dies.map((d) => d.x_coord);
     const ys = dies.map((d) => d.y_coord);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+    
+    let minX = Math.min(...xs);
+    let maxX = Math.max(...xs);
+    let minY = Math.min(...ys);
+    let maxY = Math.max(...ys);
+
+    // 1. 处理 0 基准坐标系的偏移（例如从 4 开始测，则认为 0 是真正的边缘）
+    if (minX > 0 && minX < 20) {
+      maxX = maxX + minX; // 为了对称，右侧也增加同样的偏移空间
+      minX = 0;
+    }
+    if (minY > 0 && minY < 20) {
+      maxY = maxY + minY;
+      minY = 0;
+    }
+
+    // 2. 处理中心基准坐标系（例如 -40 到 36，修正为 -40 到 40）
+    if (minX < 0 && maxX > 0) {
+      const absMaxX = Math.max(Math.abs(minX), Math.abs(maxX));
+      minX = -absMaxX;
+      maxX = absMaxX;
+    }
+    if (minY < 0 && maxY > 0) {
+      const absMaxY = Math.max(Math.abs(minY), Math.abs(maxY));
+      minY = -absMaxY;
+      maxY = absMaxY;
+    }
+
+    // 3. 额外增加一圈的边距，防止边缘 Die 紧贴 Wafer 圆框
+    minX -= 1;
+    maxX += 1;
+    minY -= 1;
+    maxY += 1;
 
     const cols = maxX - minX + 1;
     const rows = maxY - minY + 1;
@@ -54,7 +83,9 @@ function WaferMap({ waferData }) {
     const viewHeight = mapHeight + framePadding * 2;
     const cx = viewWidth / 2;
     const cy = viewHeight / 2;
-    const radius = Math.min(mapWidth, mapHeight) / 2 + cellSize * 0.35;
+    
+    // Radius should be enough to cover the larger dimension to ensure circle appearance
+    const radius = (maxDim * cellSize) / 2 + cellSize * 0.35;
 
     const passDies = binCounts[1] || 0;
     const failedDies = total_dies - passDies;
@@ -78,6 +109,8 @@ function WaferMap({ waferData }) {
     return {
       minX,
       minY,
+      cols,
+      rows,
       cellSize,
       binCounts,
       binColors,
@@ -97,6 +130,7 @@ function WaferMap({ waferData }) {
   }, [dies, total_dies]);
 
   const knownBinLabel = (bin) => {
+    if (hbin_names[bin]) return hbin_names[bin];
     const labelMap = {
       1: 'Pass / Good Die',
       2: 'Fail (Open)',

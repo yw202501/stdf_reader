@@ -123,6 +123,9 @@ class WaferMapResponse(BaseModel):
     wafer_id: str = ""
     total_dies: int = 0
     dies: List[DieResult] = []
+    wcr_info: Optional[Dict[str, Any]] = None
+    hbin_names: Dict[int, str] = {}
+    sbin_names: Dict[int, str] = {}
 
 
 # ========== 解析进度 ==========
