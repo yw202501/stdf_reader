@@ -52,3 +52,66 @@ npm run dev
 - Wafer Map 可视化
 - 测试数据图表分析
 - 数据导出
+
+## 部署方式
+
+### Linux 环境部署（Docker Compose）
+
+1. 安装并启动 Docker（需包含 Docker Compose v2）。
+2. 进入项目根目录。
+3. 首次执行时赋予脚本权限：
+
+```bash
+chmod +x start-linux.sh
+```
+
+4. 一键启动：
+
+```bash
+./start-linux.sh
+```
+
+5. 查看服务状态：
+
+```bash
+docker compose ps
+```
+
+6. 停止服务：
+
+```bash
+docker compose down
+```
+
+启动后访问：
+
+- 前端: http://localhost:5173
+- 后端: http://localhost:8000
+
+### Windows 环境部署（Docker Desktop + Docker Compose）
+
+1. 安装 Docker Desktop。
+2. 打开 Docker Desktop，确认 Engine 为 Running。
+3. 在项目根目录打开 PowerShell。
+4. 一键构建并启动：
+
+```powershell
+docker compose up --build -d
+```
+
+5. 查看服务状态：
+
+```powershell
+docker compose ps
+```
+
+6. 停止服务：
+
+```powershell
+docker compose down
+```
+
+启动后访问：
+
+- 前端: http://localhost:5173
+- 后端: http://localhost:8000
