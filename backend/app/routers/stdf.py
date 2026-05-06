@@ -22,8 +22,12 @@ from ..models.stdf_models import (
 
 router = APIRouter()
 
-# STDF 数据文件目录
-DATA_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data"
+
+def _get_data_dir() -> Path:
+    data_dir = os.getenv("DATA_DIR")
+    if data_dir:
+        return Path(data_dir)
+    return Path(__file__).resolve().parent.parent.parent.parent / "data"
 
 parser_service = StdfParserService()
 
@@ -31,11 +35,12 @@ parser_service = StdfParserService()
 @router.get("/files", response_model=FileListResponse)
 async def list_stdf_files(db: Session = Depends(get_db)):
     """列出 data 目录下所有的 STDF 文件"""
-    if not DATA_DIR.exists():
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
+    data_dir = _get_data_dir()
+    if not data_dir.exists():
+        data_dir.mkdir(parents=True, exist_ok=True)
 
     files = []
-    for f in DATA_DIR.iterdir():
+    for f in data_dir.iterdir():
         if f.suffix.lower() in (".stdf", ".std"):
             file_info = {
                 "name": f.name,
@@ -66,8 +71,9 @@ async def upload_stdf_file(file: UploadFile = File(...)):
     if not file.filename.lower().endswith((".stdf", ".std")):
         raise HTTPException(status_code=400, detail="仅支持 .stdf 或 .std 文件")
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    file_path = DATA_DIR / file.filename
+    data_dir = _get_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    file_path = data_dir / file.filename
 
     content = await file.read()
     with open(file_path, "wb") as f:
@@ -79,7 +85,7 @@ async def upload_stdf_file(file: UploadFile = File(...)):
 @router.post("/parse/{filename}", response_model=ParseJobStartResponse)
 async def start_parse_job(filename: str):
     """启动 STDF 文件解析任务"""
-    file_path = DATA_DIR / filename
+    file_path = _get_data_dir() / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
@@ -111,7 +117,7 @@ async def get_parse_progress(job_id: str):
 @router.get("/summary/{filename}", response_model=StdfSummaryResponse)
 async def get_stdf_summary(filename: str, db: Session = Depends(get_db)):
     """获取 STDF 文件的摘要信息 (MIR/MRR 等)"""
-    file_path = DATA_DIR / filename
+    file_path = _get_data_dir() / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
@@ -132,7 +138,7 @@ async def get_test_results(
     db: Session = Depends(get_db),
 ):
     """获取 STDF 文件的测试结果数据"""
-    file_path = DATA_DIR / filename
+    file_path = _get_data_dir() / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
@@ -153,7 +159,7 @@ async def get_test_results(
 @router.get("/wafermap/{filename}", response_model=WaferMapResponse)
 async def get_wafer_map(filename: str, db: Session = Depends(get_db)):
     """获取 Wafer Map 数据"""
-    file_path = DATA_DIR / filename
+    file_path = _get_data_dir() / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 
@@ -167,7 +173,7 @@ async def get_wafer_map(filename: str, db: Session = Depends(get_db)):
 @router.get("/test-list/{filename}")
 async def get_test_list(filename: str, db: Session = Depends(get_db)):
     """获取文件中所有测试项列表"""
-    file_path = DATA_DIR / filename
+    file_path = _get_data_dir() / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail=f"文件 {filename} 不存在")
 

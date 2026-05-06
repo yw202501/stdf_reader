@@ -1,10 +1,24 @@
 """FastAPI 主入口"""
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import stdf, cache, experimental
 from .database import init_db
+
+
+def _get_allowed_origins() -> list[str]:
+    cors_origins = os.getenv("CORS_ORIGINS")
+    if cors_origins:
+        return [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+
+    return [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+    ]
 
 app = FastAPI(
     title="STDF Reader API",
@@ -15,11 +29,7 @@ app = FastAPI(
 # CORS 配置，允许前端访问
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-    ],
+    allow_origins=_get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,3 +47,8 @@ app.include_router(experimental.router, prefix="/experimental", tags=["Experimen
 @app.get("/")
 async def root():
     return {"message": "STDF Reader API is running"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
